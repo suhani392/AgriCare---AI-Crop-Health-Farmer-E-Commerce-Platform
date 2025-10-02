@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-family-body), sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 60 56% 91%; /* Light beige */
+    --foreground: 0 0% 3.9%; /* Dark gray/black for text on beige */
+
+    --card: 60 56% 91%; /* Card background same as page background or slightly lighter/darker if needed */
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 60 56% 91%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 120 73% 75%; /* Natural green */
+    --primary-foreground: 0 0% 3.9%; /* Dark text on light green */
+
+    --secondary: 60 50% 85%; /* A slightly darker beige for secondary elements */
+    --secondary-foreground: 0 0% 3.9%;
+
+    --muted: 60 40% 80%; /* Muted beige */
+    --muted-foreground: 0 0% 45.1%; /* Muted text */
+
+    --accent: 45 100% 59%; /* Warm yellow */
+    --accent-foreground: 0 0% 3.9%; /* Dark text on yellow */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 60 30% 75%; /* A border color that fits beige theme */
+    --input: 60 30% 80%; /* Input background */
+    --ring: 120 73% 65%; /* Ring color related to primary green */
+
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Defining dark theme variables, though not explicitly requested, good practice */
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 120 73% 75%; /* Keep green for dark theme consistency or adjust if needed */
+    --primary-foreground: 0 0% 3.9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 45 100% 59%; /* Keep yellow for dark theme or adjust */
+    --accent-foreground: 0 0% 3.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 120 73% 75%; /* Ring color related to primary green */
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+@layer components {
+  /* Custom prose styles for chat bubbles to inherit chat bubble text color */
+  .chat-prose {
+    @apply prose prose-sm max-w-none text-inherit;
+  }
+  .chat-prose h1, .chat-prose h2, .chat-prose h3, .chat-prose h4, .chat-prose h5, .chat-prose h6, .chat-prose strong, .chat-prose p, .chat-prose ol, .chat-prose ul {
+    @apply text-inherit;
+  }
+  .chat-prose ul > li::marker {
+    @apply text-inherit opacity-70;
+  }
+   .chat-prose a {
+    @apply text-inherit underline hover:opacity-80;
+  }
+  .chat-prose code {
+    @apply text-inherit;
+  }
+}
