@@ -1,5 +1,5 @@
 {
-  "homepage": "https://DigiKaran.github.io/AgriCare_AI_Crop_Health_-_Farmer_E-Commerce-Platform",
+  "homepage": "https://suhani392.github.io/AgriCare---AI-Crop-Health-Farmer-E-Commerce-Platform/",
   "name": "agri-care",
   "version": "0.1.0",
   "private": true,
@@ -7,10 +7,10 @@
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
+    "deploy": "gh-pages -d out",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
