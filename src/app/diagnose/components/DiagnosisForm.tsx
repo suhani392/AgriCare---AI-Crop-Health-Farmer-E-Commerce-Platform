@@ -47,9 +47,9 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 const availableModels = [
-    { id: 'googleai/gemini-1.5-flash-latest', name: 'AgriCare Flash (Recommended)' },
-    { id: 'googleai/gemini-pro-vision', name: 'AgriCare Pro Vision (Alternative)' },
-    { id: 'googleai/gemini-2.0-flash', name: 'AgriCare Experimental Flash' },
+  { id: 'googleai/gemini-2.0-flash', name: 'AgriBazaar Experimental Flash' },
+  { id: 'googleai/gemini-1.5-flash-latest', name: 'AgriBazaar Flash (Recommended)' },
+  { id: 'googleai/gemini-pro-vision', name: 'AgriBazaar Pro Vision (Alternative)' },
 ];
 
 export default function DiagnosisForm() {
@@ -59,6 +59,9 @@ export default function DiagnosisForm() {
   const [isLoadingPreventative, setIsLoadingPreventative] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Set Experimental Flash as the default model
+  const defaultModel = availableModels[0].id;
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -70,7 +73,7 @@ export default function DiagnosisForm() {
       cropType: "Unknown Crop", 
       season: "Current Season", 
       location: "Local Area",
-      model: 'googleai/gemini-1.5-flash-latest',
+      model: defaultModel,
     },
   });
 

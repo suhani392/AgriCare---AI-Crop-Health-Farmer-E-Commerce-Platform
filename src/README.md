@@ -1,7 +1,7 @@
 
-# AgriCare - AI Crop Health & Farmer E-Commerce Platform
+# AgriBazaar - AI Crop Health & Farmer E-Commerce Platform
 
-AgriCare is a modern web application designed to assist farmers in India by leveraging AI for crop disease diagnosis and providing a platform for accessing localized farming information and an e-commerce marketplace for agricultural products. It also includes robust user management and expert review systems.
+AgriBazaar is a modern web application designed to assist farmers in India by leveraging AI for crop disease diagnosis and providing a platform for accessing localized farming information and an e-commerce marketplace for agricultural products. It also includes robust user management and expert review systems.
 
 ## Table of Contents
 

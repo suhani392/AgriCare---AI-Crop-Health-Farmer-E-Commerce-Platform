@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview A conversational AI agent for AgriCare, acting as a farming assistant for India.
+ * @fileOverview A conversational AI agent for AgriBazaar, acting as a farming assistant for India.
  *
  * - agriBotChat - A function that handles the conversational chat with the AI.
  * - AgriBotChatInput - The input type for the agriBotChat function.
@@ -49,7 +49,7 @@ const agriBotChatFlow = ai.defineFlow(
         languageInstruction = "You must answer in Hindi.";
     }
 
-    const systemInstruction = `You are AgriBot, a friendly and knowledgeable AI assistant for AgriCare, a platform dedicated to helping farmers in India. Your expertise is in Indian agriculture.
+    const systemInstruction = `You are AgriBot, a friendly and knowledgeable AI assistant for AgriBazaar, a platform dedicated to helping farmers in India. Your expertise is in Indian agriculture.
 - ${languageInstruction}
 - Provide accurate, concise, and practical advice.
 - If a question is outside the scope of farming, politely state that you can only answer agriculture-related queries.

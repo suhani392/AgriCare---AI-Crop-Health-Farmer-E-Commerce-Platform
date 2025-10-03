@@ -33,7 +33,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState<Language>('en');
 
   useEffect(() => {
-    const storedLang = localStorage.getItem('agriCareLanguage') as Language | null;
+    const storedLang = localStorage.getItem('agriBazaarLanguage') as Language | null;
     if (storedLang && ['en', 'mr', 'hi'].includes(storedLang)) {
       setLanguage(storedLang);
     }
@@ -41,7 +41,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const setAndStoreLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('agriCareLanguage', lang);
+    localStorage.setItem('agriBazaarLanguage', lang);
   };
 
   const t = useMemo(() => (key: string, options?: Record<string, string | number>): string => {

@@ -2,7 +2,7 @@ import DirectExpertQueryForm from './components/DirectExpertQueryForm';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Ask an Expert - AgriCare',
+  title: 'Ask an Expert - AgriBazaar',
   description: 'Submit your crop query directly to an agricultural expert for analysis and advice.',
 };
 
