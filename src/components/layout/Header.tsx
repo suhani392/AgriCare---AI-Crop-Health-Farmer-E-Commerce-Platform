@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Leaf, Globe, Menu, LogOut, LogIn, UserPlus, ShoppingCart, User, UserCog } from 'lucide-react';
+import { Leaf, Globe, Menu, LogOut, LogIn, UserPlus, ShoppingCart, User, UserCog, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -31,7 +31,6 @@ const NavLinks = ({ className, itemClassName, onLinkClick, userRole }: { classNa
     { href: '/diagnose', label: t('header.aiDiagnose') },
     { href: '/ask-expert', label: t('header.askExpert') },
     { href: '/products', label: t('header.products') },
-    { href: '/chatbot', label: t('header.chatbot') },
     { href: '/local-info', label: t('header.localInfo') },
   ];
 
@@ -68,6 +67,7 @@ export default function Header() {
   const { cartCount } = useCart();
   const { t, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [isDark, setIsDark] = React.useState<boolean>(false);
 
   const handleLogout = async () => {
     try {
@@ -84,6 +84,33 @@ export default function Header() {
       return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  };
+
+  React.useEffect(() => {
+    // Initialize theme from localStorage or system preference
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+    const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldDark = stored ? stored === 'dark' : prefersDark;
+    setIsDark(shouldDark);
+    const root = document.documentElement;
+    if (shouldDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    const root = document.documentElement;
+    if (next) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   };
   
   const UserAvatarButton = () => (
@@ -170,6 +197,9 @@ export default function Header() {
               <DropdownMenuItem disabled>{t('header.spanishSoon')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
         </div>
 
         <div className="md:hidden flex items-center">
@@ -245,6 +275,10 @@ export default function Header() {
                     <DropdownMenuItem disabled>{t('header.spanishSoon')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button variant="outline" className="w-full justify-start" onClick={toggleTheme} aria-label="Toggle theme">
+                  {isDark ? <Sun className="mr-2 h-5 w-5" /> : <Moon className="mr-2 h-5 w-5" />}
+                  {isDark ? 'Light Mode' : 'Dark Mode'}
+                </Button>
               </div>
             </SheetContent>
           </Sheet>

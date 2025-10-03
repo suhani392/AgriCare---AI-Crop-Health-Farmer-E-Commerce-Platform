@@ -1,6 +1,6 @@
 
 'use client';
-import DiagnosisForm from './components/DiagnosisForm';
+import CombinedDiagnosisChat from './components/CombinedDiagnosisChat';
 import type { Metadata } from 'next';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -19,7 +19,9 @@ export default function DiagnosePage() {
           {t('diagnose.pageSubtitle')}
         </p>
       </header>
-      <DiagnosisForm />
+      <div className="w-full max-w-2xl mx-auto">
+        <CombinedDiagnosisChat />
+      </div>
     </div>
   );
 }
