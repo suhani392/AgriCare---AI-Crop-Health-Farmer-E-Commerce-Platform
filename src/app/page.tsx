@@ -56,7 +56,7 @@ export default function HomePage() {
               {t('home.subtitle')}
             </p>
             <div className="space-x-4">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/85 text-primary-foreground active:brightness-75">
                 <Link href="/diagnose">{t('home.getStarted')}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">

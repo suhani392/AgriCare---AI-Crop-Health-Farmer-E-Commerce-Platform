@@ -14,6 +14,20 @@ import { getLocalizedFarmingTipsAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { LeafLoader } from '@/components/ui/leaf-loader';
 
+// Helper function to get the appropriate weather image
+const getWeatherImage = (hint: string) => {
+  const images: Record<string, string> = {
+    'clear sky farm': '/images/weather/clear-sky-farm.png',
+    'cloudy farm': '/images/weather/cloudy-farm.png',
+    'monsoon farm india': '/images/weather/monsoon-farm-india.png',
+    'overcast field': '/images/weather/overcast-field.png',
+    'rainy farm': '/images/weather/rainy-farm.png',
+    'default': '/images/weather/default.png'
+  };
+  
+  return images[hint] || images['default'];
+};
+
 
 // Mock Indian locations for simulated reverse geocoding
 const mockIndianLocations = [
@@ -239,16 +253,17 @@ export default function LocalInfoPage() {
                 <p><strong className="font-medium">Wind:</strong> {weatherData.wind}</p>
               </div>
               <div className="mt-auto pt-4">
-                  <Image 
-                    src={`https://placehold.co/600x300.png`} 
-                    alt={`Weather image for ${weatherData.locationName}`} 
-                    width={600} 
-                    height={300} 
-                    className="rounded-lg aspect-[2/1] object-cover" 
-                    data-ai-hint={weatherData.dataAiHint || "farm landscape india"}
-                    priority={false}
-                  />
-                   <p className="text-xs text-muted-foreground mt-1 text-center">Illustrative image. Actual conditions may vary.</p>
+                  <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
+                    <Image 
+                      src={getWeatherImage(weatherData.dataAiHint || '')}
+                      alt={`${weatherData.condition} in ${weatherData.locationName}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
+                      priority={false}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 text-center">Illustrative image. Actual conditions may vary.</p>
               </div>
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 Weather data is currently simulated. Integrate a real weather API for live forecasts and a reverse geocoding service for accurate GPS location names.
