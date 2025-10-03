@@ -10,13 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Inbox, CheckCircle, Edit3, Eye, User, Brain } from 'lucide-react';
+import { AlertTriangle, Inbox, CheckCircle, Edit3, Eye, User, Brain, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { LeafLoader } from '@/components/ui/leaf-loader';
+import { db } from '@/lib/firebase/config';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { DIAGNOSIS_HISTORY_COLLECTION } from '@/lib/firebase/constants';
 
 
 interface ExpertQueryManagementProps {
@@ -39,20 +42,58 @@ export default function ExpertQueryManagement({ reviewerUserId }: ExpertQueryMan
   const [reviewFormData, setReviewFormData] = useState<ExpertReviewFormData>({ expertDiagnosis: '', expertComments: '' });
 
   const fetchQueries = async () => {
-    setIsLoading(true);
-    setError(null);
-    const result = await fetchPendingExpertQueriesAction();
-    if (result.queries) {
-      setQueries(result.queries);
-    } else {
-      setError(result.error || 'Failed to fetch pending expert queries.');
-      toast({ variant: 'destructive', title: 'Error', description: result.error || 'Could not load queries.' });
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await fetchPendingExpertQueriesAction();
+      if (result.queries) {
+        setQueries(result.queries);
+      } else {
+        setError(result.error || 'Failed to fetch pending expert queries.');
+        toast({ variant: 'destructive', title: 'Error', description: result.error || 'Could not load queries.' });
+      }
+    } catch (err) {
+      console.error('Error fetching queries:', err);
+      setError('Failed to load queries. Please try again.');
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to load queries.' });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
+  // Set up real-time listener for expert queries
   useEffect(() => {
+    // Initial fetch
     fetchQueries();
+
+    // Set up real-time listener
+    const q = query(
+      collection(db, DIAGNOSIS_HISTORY_COLLECTION),
+      where("status", "==", "pending_expert"),
+      orderBy("timestamp", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        console.log('Received real-time update for expert queries');
+        const updatedQueries: DiagnosisHistoryEntry[] = [];
+        snapshot.forEach((doc) => {
+          updatedQueries.push({ id: doc.id, ...doc.data() } as DiagnosisHistoryEntry);
+        });
+        setQueries(updatedQueries);
+      },
+      (error) => {
+        console.error('Error in real-time listener:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Connection Error',
+          description: 'Unable to receive real-time updates. Please refresh the page.'
+        });
+      }
+    );
+
+    // Clean up the listener when component unmounts
+    return () => unsubscribe();
   }, [reviewerUserId]);
 
   const handleOpenReviewDialog = (query: DiagnosisHistoryEntry) => {
@@ -126,6 +167,20 @@ export default function ExpertQueryManagement({ reviewerUserId }: ExpertQueryMan
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold tracking-tight">Expert Review Queue</h2>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={fetchQueries}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+      
       <Table>
         <TableCaption>List of crop diagnoses awaiting expert review.</TableCaption>
         <TableHeader>

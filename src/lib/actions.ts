@@ -65,12 +65,24 @@ export async function submitDirectExpertQueryAction(
       diagnosis: null,
       expertReviewRequested: true,
       status: 'pending_expert' as const,
+      timestamp: new Date().toISOString(), // Add timestamp for proper ordering
+      expertReviewedBy: null,
+      expertDiagnosis: null,
+      expertComments: null,
+      expertReviewedAt: null
     };
+    
+    console.log('Saving expert query:', entryToSave);
     const historyId = await saveDiagnosisEntryToDb(entryToSave);
+    console.log('Expert query saved with ID:', historyId);
+    
     return { success: true, historyId };
   } catch (error: any) {
     console.error('Error in submitDirectExpertQueryAction:', error);
-    return { success: false, error: `Failed to submit query. ${error.message || ''}`.trim() };
+    return { 
+      success: false, 
+      error: `Failed to submit query. ${error.message || 'Unknown error'}`.trim() 
+    };
   }
 }
 

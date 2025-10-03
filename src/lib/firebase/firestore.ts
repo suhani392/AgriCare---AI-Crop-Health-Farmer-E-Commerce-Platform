@@ -68,13 +68,24 @@ export const getPendingExpertQueries = async (): Promise<DiagnosisHistoryEntry[]
   try {
     const q = query(
       collection(db, DIAGNOSIS_HISTORY_COLLECTION),
-      where("status", "==", "pending_expert")
+      where("status", "==", "pending_expert"),
+      orderBy("timestamp", "desc")  // Newest first
     );
+    
+    console.log('Fetching pending expert queries...');
     const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} pending expert queries`);
+    
     const queries: DiagnosisHistoryEntry[] = [];
     querySnapshot.forEach((doc) => {
-      queries.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as DiagnosisHistoryEntry);
+      const data = doc.data();
+      console.log(`Query ${doc.id}:`, data);
+      queries.push({ 
+        id: doc.id, 
+        ...serializeDocumentTimestamps(data) 
+      } as DiagnosisHistoryEntry);
     });
+    
     return queries;
   } catch (error: any) {
     console.error("Error fetching pending expert queries from DB: ", error);
