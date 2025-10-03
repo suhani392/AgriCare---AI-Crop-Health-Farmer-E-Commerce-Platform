@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Leaf, Globe, Menu, LogOut, LogIn, UserPlus, ShoppingCart, User, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ const Logo = () => (
 
 const NavLinks = ({ className, itemClassName, onLinkClick, userRole }: { className?: string; itemClassName?: string; onLinkClick?: () => void; userRole?: string | null; }) => {
   const { t } = useLanguage();
+  const pathname = usePathname();
 
   const navItems = [
     { href: '/', label: t('header.home') },
@@ -47,7 +49,11 @@ const NavLinks = ({ className, itemClassName, onLinkClick, userRole }: { classNa
           key={item.label}
           href={item.href}
           onClick={onLinkClick}
-          className={cn("text-sm font-medium text-foreground/80 hover:text-primary transition-colors", itemClassName)}
+          className={cn(
+            "text-sm font-medium transition-colors",
+            pathname === item.href ? "text-primary" : "text-foreground/80 hover:text-primary",
+            itemClassName
+          )}
         >
           {item.label}
         </Link>
