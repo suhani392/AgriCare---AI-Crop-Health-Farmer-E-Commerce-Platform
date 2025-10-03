@@ -29,7 +29,7 @@ const NavLinks = ({ className, itemClassName, onLinkClick, userRole }: { classNa
   const navItems = [
     { href: '/', label: t('header.home') },
     { href: '/diagnose', label: t('header.aiDiagnose') },
-    { href: '/ask-expert', label: t('header.askExpert') },
+    ...(userRole !== 'expert' ? [{ href: '/ask-expert', label: t('header.askExpert') }] : []),
     { href: '/products', label: t('header.products') },
     { href: '/local-info', label: t('header.localInfo') },
   ];

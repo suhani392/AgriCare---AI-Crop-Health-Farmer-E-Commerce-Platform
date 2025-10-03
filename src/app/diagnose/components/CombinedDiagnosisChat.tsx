@@ -13,16 +13,23 @@ import { cn } from '@/lib/utils';
 import { Send, User, Bot, ImageIcon, AlertTriangle, UploadCloud } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ChatMessageHistory, DiagnosisResult } from '@/types';
+import type { ChatMessageHistory, DiagnosisResult, Product } from '@/types';
 import { getAgriBotResponseAction, diagnoseCropAction } from '@/lib/actions';
+import { useCart } from '@/contexts/CartContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { getProductImage } from '@/lib/productImages';
 
 type Sender = 'user' | 'bot';
+
+type MessageKind = 'text' | 'suggestions';
 
 interface ChatMessage {
   id: string;
   sender: Sender;
+  kind: MessageKind;
   text: string;
   timestamp: Date;
+  suggestions?: Product[];
 }
 
 export default function CombinedDiagnosisChat() {
@@ -36,12 +43,14 @@ export default function CombinedDiagnosisChat() {
   const { currentUser } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     setMessages([
       {
         id: `${Date.now()}`,
         sender: 'bot',
+        kind: 'text',
         text: t('chatbot.initialMessage'),
         timestamp: new Date(),
       },
@@ -91,6 +100,7 @@ export default function CombinedDiagnosisChat() {
     const userMsg: ChatMessage = {
       id: `${Date.now()}`,
       sender: 'user',
+      kind: 'text',
       text: attachedImage ? (userText ? `${userText}\n\n(Attached an image for diagnosis)` : '(Attached an image for diagnosis)') : userText,
       timestamp: new Date(),
     };
@@ -119,9 +129,15 @@ export default function CombinedDiagnosisChat() {
           botText = 'Unexpected response from diagnosis service.';
         }
 
+        // Build product suggestions from diagnosis text heuristics
+        const suggestions: Product[] = buildProductSuggestions(botText);
+
         setMessages((prev) => [
           ...prev,
-          { id: `${Date.now()}-bot`, sender: 'bot', text: botText, timestamp: new Date() },
+          { id: `${Date.now()}-bot`, sender: 'bot', kind: 'text', text: botText, timestamp: new Date() },
+          ...(suggestions.length > 0
+            ? [{ id: `${Date.now()}-sugg`, sender: 'bot', kind: 'suggestions', text: '', suggestions, timestamp: new Date() }] as ChatMessage[]
+            : []),
         ]);
       } else {
         // Regular chatbot Q&A
@@ -135,13 +151,13 @@ export default function CombinedDiagnosisChat() {
         const botText = 'response' in result ? result.response : `Error: ${'error' in result ? result.error : 'Unknown error'}`;
         setMessages((prev) => [
           ...prev,
-          { id: `${Date.now()}-bot`, sender: 'bot', text: botText, timestamp: new Date() },
+          { id: `${Date.now()}-bot`, sender: 'bot', kind: 'text', text: botText, timestamp: new Date() },
         ]);
       }
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
-        { id: `${Date.now()}-err`, sender: 'bot', text: err?.message || 'An unexpected error occurred.', timestamp: new Date() },
+        { id: `${Date.now()}-err`, sender: 'bot', kind: 'text', text: err?.message || 'An unexpected error occurred.', timestamp: new Date() },
       ]);
     } finally {
       setIsLoading(false);
@@ -149,6 +165,43 @@ export default function CombinedDiagnosisChat() {
       setAttachedImage(null);
       setAttachedPreview(null);
     }
+  };
+
+  const buildProductSuggestions = (diagnosisText: string): Product[] => {
+    const items: Product[] = [];
+    const lower = diagnosisText.toLowerCase();
+
+    const pushItem = (id: string, name: string, category: string, price: number, description?: string) => {
+      items.push({
+        id,
+        name,
+        category,
+        price,
+        stock: 100,
+        imageUrl: getProductImage(name),
+        description,
+      });
+    };
+
+    if (lower.includes('fung') || lower.includes('blight') || lower.includes('mildew')) {
+      pushItem('fungicide-neem-1', 'Neem Oil (Fungicidal)', 'Pesticides', 299, 'Organic neem oil for fungal control');
+    }
+    if (lower.includes('insect') || lower.includes('aphid') || lower.includes('borer')) {
+      pushItem('insecticide-glyph-1', 'Glyphosate Herbicide', 'Pesticides', 499, 'Systemic herbicide for weed/insect management');
+    }
+    if (lower.includes('nitrogen') || lower.includes('yellowing') || lower.includes('urea')) {
+      pushItem('fert-urea-1', 'Urea Fertilizer', 'Fertilizers', 399, 'High nitrogen fertilizer for quick greening');
+    }
+    if (lower.includes('phosphorus') || lower.includes('root') || lower.includes('dap')) {
+      pushItem('fert-dap-1', 'DAP Fertilizer', 'Fertilizers', 499, 'Balanced phosphorus and nitrogen for strong roots');
+    }
+
+    // Always suggest a sprayer for application when treatments are mentioned
+    if (lower.includes('spray') || lower.includes('apply') || items.length > 0) {
+      pushItem('tool-sprayer-1', 'Manual Spray Pump', 'Tools', 1099, 'Handheld sprayer for field application');
+    }
+
+    return items;
   };
 
   return (
@@ -192,12 +245,33 @@ export default function CombinedDiagnosisChat() {
                 )}
               </Avatar>
               <div className={cn('rounded-lg px-3 py-2 text-sm shadow', msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
-                {msg.sender === 'bot' ? (
-                  <ReactMarkdown className="chat-prose" remarkPlugins={[remarkGfm]}>
-                    {msg.text}
-                  </ReactMarkdown>
-                ) : (
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                {msg.kind === 'text' && (
+                  msg.sender === 'bot' ? (
+                    <ReactMarkdown className="chat-prose" remarkPlugins={[remarkGfm]}>
+                      {msg.text}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                  )
+                )}
+                {msg.kind === 'suggestions' && msg.suggestions && msg.suggestions.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="font-semibold">Suggested products</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {msg.suggestions.map((p) => (
+                        <Card key={p.id} className="overflow-hidden">
+                          <CardContent className="p-3 flex gap-3 items-center">
+                            <img src={p.imageUrl} alt={p.name} className="h-14 w-14 object-cover rounded" />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">₹{p.price}</p>
+                            </div>
+                            <Button size="sm" onClick={() => addToCart(p)}>Add</Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <p className={cn('text-xs mt-1', msg.sender === 'user' ? 'text-primary-foreground/70 text-right' : 'text-secondary-foreground/70 text-left')}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
