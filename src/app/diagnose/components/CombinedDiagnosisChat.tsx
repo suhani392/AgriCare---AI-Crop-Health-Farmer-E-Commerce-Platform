@@ -129,8 +129,8 @@ export default function CombinedDiagnosisChat() {
           botText = 'Unexpected response from diagnosis service.';
         }
 
-        // Build product suggestions from diagnosis text heuristics
-        const suggestions: Product[] = buildProductSuggestions(botText);
+        // Build product suggestions strictly from last diagnosis and recommendation text
+        const suggestions: Product[] = buildProductSuggestions(lastDiagnosis, botText);
 
         setMessages((prev) => [
           ...prev,
@@ -167,9 +167,9 @@ export default function CombinedDiagnosisChat() {
     }
   };
 
-  const buildProductSuggestions = (diagnosisText: string): Product[] => {
+  const buildProductSuggestions = (diag: DiagnosisResult | null, diagnosisText: string): Product[] => {
     const items: Product[] = [];
-    const lower = diagnosisText.toLowerCase();
+    const base = `${diag ? diag.disease + ' ' : ''}${diagnosisText}`.toLowerCase();
 
     const pushItem = (id: string, name: string, category: string, price: number, description?: string) => {
       items.push({
@@ -183,21 +183,27 @@ export default function CombinedDiagnosisChat() {
       });
     };
 
-    if (lower.includes('fung') || lower.includes('blight') || lower.includes('mildew')) {
+    // Fungal diseases
+    if (/(fung|blight|mildew|rust)/i.test(base)) {
       pushItem('fungicide-neem-1', 'Neem Oil (Fungicidal)', 'Pesticides', 299, 'Organic neem oil for fungal control');
     }
-    if (lower.includes('insect') || lower.includes('aphid') || lower.includes('borer')) {
-      pushItem('insecticide-glyph-1', 'Glyphosate Herbicide', 'Pesticides', 499, 'Systemic herbicide for weed/insect management');
+    // Insect/pest pressure (use neem as biopesticide)
+    if (/(insect|aphid|borer|caterpillar|thrip|whitefly|pest)/i.test(base)) {
+      pushItem('pesticide-neem-2', 'Neem Oil (Pesticidal)', 'Pesticides', 299, 'Broad-spectrum botanical pesticide');
     }
-    if (lower.includes('nitrogen') || lower.includes('yellowing') || lower.includes('urea')) {
+    // Weed control (glyphosate for weeds only)
+    if (/(weed|weeds|grassy|grass)/i.test(base)) {
+      pushItem('herbicide-glyph-1', 'Glyphosate Herbicide', 'Herbicides', 499, 'Non-selective herbicide for weed control');
+    }
+    // Nutrient deficiencies
+    if (/(nitrogen|chlorosis|yellowing|urea)/i.test(base)) {
       pushItem('fert-urea-1', 'Urea Fertilizer', 'Fertilizers', 399, 'High nitrogen fertilizer for quick greening');
     }
-    if (lower.includes('phosphorus') || lower.includes('root') || lower.includes('dap')) {
+    if (/(phosphorus|root vigor|dap)/i.test(base)) {
       pushItem('fert-dap-1', 'DAP Fertilizer', 'Fertilizers', 499, 'Balanced phosphorus and nitrogen for strong roots');
     }
-
-    // Always suggest a sprayer for application when treatments are mentioned
-    if (lower.includes('spray') || lower.includes('apply') || items.length > 0) {
+    // Application tool only when spraying is explicitly mentioned
+    if (/(spray|foliar|sprayer|sprayed)/i.test(base)) {
       pushItem('tool-sprayer-1', 'Manual Spray Pump', 'Tools', 1099, 'Handheld sprayer for field application');
     }
 

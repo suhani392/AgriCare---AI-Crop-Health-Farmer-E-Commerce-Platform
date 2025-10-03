@@ -5,7 +5,7 @@ import Image from 'next/image';
 import type { Product } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag, DollarSign, Package, ShoppingCart } from 'lucide-react';
+import { Tag, Package, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { getProductImage, productImageMap } from '@/lib/productImages';
@@ -69,8 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.description || 'High-quality agricultural product.'}
         </CardDescription>
         <div className="flex items-center font-semibold text-lg text-primary">
-          <DollarSign className="h-5 w-5 mr-1" />
-          <span>{product.price.toFixed(2)}</span>
+          <span>₹{product.price.toFixed(2)}</span>
         </div>
         <div className="flex items-center text-xs text-muted-foreground">
             <Package className="h-3 w-3 mr-1.5"/>
