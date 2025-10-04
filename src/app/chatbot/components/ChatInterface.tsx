@@ -10,6 +10,7 @@ import { Send, User, Bot, AlertTriangle, ImagePlus, XCircle } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWeather } from '@/contexts/WeatherContext';
 import { saveChatMessageAction, getAgriBotResponseAction, getProductSuggestionChatAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +50,7 @@ export default function ChatInterface() {
   const { toast } = useToast();
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
+  const { location, requestLocation, hasLocationPermission } = useWeather();
 
   useEffect(() => {
     if (currentUser) {
@@ -206,6 +208,11 @@ export default function ChatInterface() {
         photoDataUri,
         history: chatHistory,
         language: language,
+        userLocation: location ? {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: location.address,
+        } : undefined,
       });
       
       if ('response' in result) {
@@ -240,6 +247,22 @@ export default function ChatInterface() {
               {t('chatbot.loginToChatDescription')}
             </AlertDescription>
           </Alert>
+      )}
+      {currentUser && !hasLocationPermission && (
+        <Alert className="m-4 rounded-md border-blue-200 bg-blue-50">
+          <AlertTriangle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Enable Location for Better Advice</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            Allow location access to get weather-based agricultural advice tailored to your area.
+            <Button 
+              onClick={requestLocation} 
+              className="ml-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              Enable Location
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
       <ScrollArea className="flex-grow p-4 sm:p-6" ref={scrollAreaRef}>
         <div className="space-y-4">

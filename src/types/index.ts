@@ -138,6 +138,11 @@ export interface AgriBotChatInput {
   history: ChatMessageHistory[];
   language?: 'en' | 'mr' | 'hi';
   photoDataUri?: string;
+  userLocation?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
 }
 
 export interface AgriBotChatOutput {

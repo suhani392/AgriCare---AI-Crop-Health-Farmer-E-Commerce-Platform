@@ -7,6 +7,7 @@ import Footer from '@/components/layout/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { WeatherProvider } from '@/contexts/WeatherContext';
 
 export const metadata: Metadata = {
   title: 'AgriCare - AI Crop Health & E-Commerce',
@@ -30,12 +31,14 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <LanguageProvider>
-              <Header />
-              <main className="flex-grow">
-                {children}
-              </main>
-              <Footer />
-              <Toaster />
+              <WeatherProvider>
+                <Header />
+                <main className="flex-grow">
+                  {children}
+                </main>
+                <Footer />
+                <Toaster />
+              </WeatherProvider>
             </LanguageProvider>
           </CartProvider>
         </AuthProvider>
