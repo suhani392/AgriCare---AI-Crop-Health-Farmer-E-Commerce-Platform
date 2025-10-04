@@ -146,17 +146,32 @@ export default function ChatInterface() {
     // Don't save image data to history for performance
     await handleSaveMessage({ sender: 'user', parts: [{ text: inputValue }] });
 
-    const chatHistory: ChatMessageHistory[] = messages
+    // Construct history including the current user message
+    const allMessages = [...messages, userMessage];
+    const chatHistory: ChatMessageHistory[] = allMessages
       .filter(m => m.sender === 'user' || m.sender === 'bot')
       .map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
-        parts: m.parts.filter(p => 'text' in p), // Send only text history to the model
+        parts: m.parts.map(part => {
+          // For media parts, replace with a text reference to maintain context without sending full image data
+          if ('media' in part) {
+            return { text: '[User uploaded an image]' };
+          }
+          return part;
+        }),
       }));
     
     let photoDataUri: string | undefined = undefined;
     if (imageFile) {
         photoDataUri = await fileToDataUri(imageFile);
     }
+
+    // Debug: Log what we're sending to the AI
+    console.log('=== DEBUG: Sending to AI ===');
+    console.log('Message:', inputValue);
+    console.log('Photo data URI present:', !!photoDataUri);
+    console.log('Chat history length:', chatHistory.length);
+    console.log('Chat history:', JSON.stringify(chatHistory, null, 2));
 
     const result = await getAgriBotResponseAction({
         message: inputValue,

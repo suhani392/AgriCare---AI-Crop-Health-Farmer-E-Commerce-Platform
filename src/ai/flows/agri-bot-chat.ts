@@ -48,6 +48,13 @@ const agriBotChatFlow = ai.defineFlow(
   },
   async ({ message, history, language, photoDataUri }) => {
 
+    // Debug: Log the history to see what's being passed
+    console.log('=== DEBUG: Chat History ===');
+    console.log('History length:', history.length);
+    console.log('History content:', JSON.stringify(history, null, 2));
+    console.log('Current message:', message);
+    console.log('Photo data URI present:', !!photoDataUri);
+
     let languageInstruction = "You must answer in English.";
     if (language === 'mr') {
         languageInstruction = "You must answer in Marathi.";
@@ -55,16 +62,34 @@ const agriBotChatFlow = ai.defineFlow(
         languageInstruction = "You must answer in Hindi.";
     }
 
+    // Check if there's any image context in the conversation history
+    const hasImageInHistory = history.some(msg => 
+      msg.parts.some(part => 'text' in part && part.text === '[User uploaded an image]')
+    );
+    
+    console.log('Has image in history:', hasImageInHistory);
+
     let systemInstruction;
     if (photoDataUri) {
-      // Logic for when an image is present
+      // Logic for when an image is present in current message
       systemInstruction = `You are an expert agricultural botanist specializing in Indian crops. Analyze the user's message and the provided photo.
 - ${languageInstruction}
 - If the user asks to identify the crop (e.g., "what crop is this?", "name this plant"), respond ONLY with the common name of the crop.
 - If the user asks to diagnose a disease (e.g., "detect disease", "what's wrong with this plant?"), provide a precise diagnosis, your confidence level, and detailed treatment recommendations suitable for Indian farming conditions. The entire response, including disease name and treatments, must be in the requested language.
 - If the image does not clearly depict a crop, or if you cannot determine the disease with reasonable confidence, state that and explain what you see in the requested language.`;
+    } else if (hasImageInHistory) {
+      // Logic for follow-up questions after image analysis
+      systemInstruction = `You are AgriBot, a friendly and knowledgeable AI assistant for AgriCare. You have previously analyzed images in this conversation and MUST maintain that context.
+- ${languageInstruction}
+- CRITICAL: You have already analyzed images in this conversation. When users say "it", "this", "the image", "the crop", "the plant", etc., they are referring to the crop/image you previously analyzed.
+- You MUST remember your previous analysis and continue the conversation based on that context.
+- If a user asks follow-up questions like "how to prevent it?", "why is it black?", "what products to use?", they are referring to the crop/disease you previously identified.
+- Provide specific advice based on your previous analysis. Do NOT ask users to re-upload images or specify which image they mean.
+- You can answer questions about crop diseases, fertilizers, pesticides, seeds, farming equipment, preventative measures, localized tips, and government schemes for farmers in India.
+- Keep responses relatively short and easy to understand for a general audience.
+- Never provide medical or financial advice. For complex issues, always recommend consulting a local agricultural expert or authority.`;
     } else {
-      // Logic for text-only chat
+      // Logic for text-only chat without image history
       systemInstruction = `You are AgriBot, a friendly and knowledgeable AI assistant for AgriCare, a platform dedicated to helping farmers in India. Your expertise is in Indian agriculture.
 - ${languageInstruction}
 - Provide accurate, concise, and practical advice.
