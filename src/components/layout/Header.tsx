@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Leaf, Globe, Menu, LogOut, LogIn, UserPlus, ShoppingCart, User, UserCog } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -148,6 +149,7 @@ export default function Header() {
               </Button>
             </>
           )}
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -223,20 +225,23 @@ export default function Header() {
                     </Button>
                   </>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Globe className="mr-2 h-5 w-5" />
-                      {t('header.selectLanguage')}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[calc(280px-2*theme(spacing.6))]">
-                    <DropdownMenuItem onClick={() => setLanguage('en')}>{t('header.english')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setLanguage('mr')}>{t('header.marathi')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setLanguage('hi')}>{t('header.hindi')}</DropdownMenuItem>
-                    <DropdownMenuItem disabled>{t('header.spanishSoon')}</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex gap-2">
+                  <ThemeToggle />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1 justify-start">
+                        <Globe className="mr-2 h-5 w-5" />
+                        {t('header.selectLanguage')}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[calc(280px-2*theme(spacing.6))]">
+                      <DropdownMenuItem onClick={() => setLanguage('en')}>{t('header.english')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLanguage('mr')}>{t('header.marathi')}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLanguage('hi')}>{t('header.hindi')}</DropdownMenuItem>
+                      <DropdownMenuItem disabled>{t('header.spanishSoon')}</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

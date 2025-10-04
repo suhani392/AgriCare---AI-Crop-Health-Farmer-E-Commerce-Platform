@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { WeatherProvider } from '@/contexts/WeatherContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 export const metadata: Metadata = {
   title: 'AgriCare - AI Crop Health & E-Commerce',
@@ -28,20 +29,22 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
-        <AuthProvider>
-          <CartProvider>
-            <LanguageProvider>
-              <WeatherProvider>
-                <Header />
-                <main className="flex-grow">
-                  {children}
-                </main>
-                <Footer />
-                <Toaster />
-              </WeatherProvider>
-            </LanguageProvider>
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <LanguageProvider>
+                <WeatherProvider>
+                  <Header />
+                  <main className="flex-grow">
+                    {children}
+                  </main>
+                  <Footer />
+                  <Toaster />
+                </WeatherProvider>
+              </LanguageProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

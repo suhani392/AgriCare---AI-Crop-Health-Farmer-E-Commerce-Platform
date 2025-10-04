@@ -54,35 +54,35 @@ body {
   }
 
   .dark {
-    /* Defining dark theme variables, though not explicitly requested, good practice */
-    --background: 0 0% 3.9%;
+    /* Dark theme with #2C3026 (dark green-gray) background */
+    --background: 80 12% 18%; /* #2C3026 */
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 80 12% 20%; /* Slightly lighter than background */
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 80 12% 18%; /* Same as background */
     --popover-foreground: 0 0% 98%;
-    --primary: 120 73% 75%; /* Keep green for dark theme consistency or adjust if needed */
+    --primary: 120 73% 75%; /* Keep green for dark theme consistency */
     --primary-foreground: 0 0% 3.9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 80 12% 25%; /* Slightly lighter than background */
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
+    --muted: 80 12% 25%; /* Same as secondary */
     --muted-foreground: 0 0% 63.9%;
-    --accent: 45 100% 59%; /* Keep yellow for dark theme or adjust */
+    --accent: 45 100% 59%; /* Keep yellow for dark theme */
     --accent-foreground: 0 0% 3.9%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 80 12% 30%; /* Slightly lighter border */
+    --input: 80 12% 25%; /* Input background */
     --ring: 120 73% 75%; /* Ring color related to primary green */
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 80 12% 18%; /* Match main background */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 120 73% 75%; /* Match primary green */
+    --sidebar-primary-foreground: 0 0% 3.9%;
+    --sidebar-accent: 80 12% 25%; /* Match secondary */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 80 12% 30%; /* Match border */
+    --sidebar-ring: 120 73% 75%; /* Match ring */
   }
 }
 
