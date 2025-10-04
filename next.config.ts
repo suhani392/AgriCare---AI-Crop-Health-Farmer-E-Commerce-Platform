@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   experimental: {
     // This is to allow the Next.js dev server to accept requests from the

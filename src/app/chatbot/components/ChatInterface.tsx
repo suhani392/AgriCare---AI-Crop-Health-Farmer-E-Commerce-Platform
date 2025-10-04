@@ -10,10 +10,12 @@ import { Send, User, Bot, AlertTriangle, ImagePlus, XCircle } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { saveChatMessageAction, getAgriBotResponseAction } from '@/lib/actions';
+import { saveChatMessageAction, getAgriBotResponseAction, getProductSuggestionChatAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { ChatMessageHistory, ChatMessagePart } from '@/types';
+import type { ChatMessageHistory, ChatMessagePart, Product } from '@/types';
+import { useCart } from '@/contexts/CartContext';
+import { Card, CardContent } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -31,6 +33,7 @@ interface Message {
   sender: 'user' | 'bot';
   timestamp: Date;
   parts: ChatMessagePart[];
+  suggestedProducts?: Product[];
 }
 
 export default function ChatInterface() {
@@ -45,6 +48,7 @@ export default function ChatInterface() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { t, language } = useLanguage();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (currentUser) {
@@ -173,19 +177,44 @@ export default function ChatInterface() {
     console.log('Chat history length:', chatHistory.length);
     console.log('Chat history:', JSON.stringify(chatHistory, null, 2));
 
-    const result = await getAgriBotResponseAction({
+    // Check if the message is disease/product-related
+    const isDiseaseRelated = /diagnose|disease|pest|fungus|insect|weed|blight|mildew|rust|aphid|borer|caterpillar|thrip|whitefly|deficiency|yellowing|stunted|treatment|cure|spray|fertilizer|pesticide/i.test(inputValue);
+    const isProductRelated = /product|buy|purchase|fertilizer|pesticide|seed|equipment|tool/i.test(inputValue);
+    
+    let botResponseText = "I'm sorry, I encountered an error. Please try again later.";
+    let suggestedProducts: Product[] | undefined = undefined;
+    
+    if ((isDiseaseRelated || isProductRelated) && !photoDataUri) {
+      // Use product suggestion chat for disease/product-related queries without images
+      const result = await getProductSuggestionChatAction({
+        message: inputValue,
+        history: chatHistory,
+        language: language,
+      });
+      
+      if ('response' in result) {
+        botResponseText = result.response;
+        suggestedProducts = result.suggestedProducts;
+      } else if ('error' in result) {
+        botResponseText = `Error: ${result.error}`;
+        console.error("Product suggestion chat error:", result.error);
+      }
+    } else {
+      // Use regular chat for other queries or when image is present
+      const result = await getAgriBotResponseAction({
         message: inputValue,
         photoDataUri,
         history: chatHistory,
         language: language,
-    });
-    
-    let botResponseText = "I'm sorry, I encountered an error. Please try again later.";
-    if ('response' in result) {
-      botResponseText = result.response;
-    } else if ('error' in result) {
-      botResponseText = `Error: ${result.error}`;
-      console.error("AgriBot response error:", result.error);
+      });
+      
+      if ('response' in result) {
+        botResponseText = result.response;
+        suggestedProducts = result.suggestedProducts;
+      } else if ('error' in result) {
+        botResponseText = `Error: ${result.error}`;
+        console.error("AgriBot response error:", result.error);
+      }
     }
 
     const botMessage: Message = {
@@ -193,6 +222,7 @@ export default function ChatInterface() {
       sender: 'bot',
       timestamp: new Date(),
       parts: [{ text: botResponseText }],
+      suggestedProducts,
     };
     
     setMessages(prev => [...prev, botMessage]);
@@ -260,6 +290,49 @@ export default function ChatInterface() {
                   }
                   return null;
                 })}
+                {msg.suggestedProducts && msg.suggestedProducts.length > 0 && (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <p className="font-semibold text-green-700 text-sm">Recommended Products</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {msg.suggestedProducts.map((p) => (
+                        <Card key={p.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                          <CardContent className="p-2 flex gap-2 items-center">
+                            <img 
+                              src={p.imageUrl} 
+                              alt={p.name} 
+                              className="h-10 w-10 object-cover rounded border"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/images/products/placeholder-product.svg';
+                              }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-xs truncate">{p.name}</p>
+                              <p className="text-xs text-primary font-semibold">₹{p.price.toFixed(2)}</p>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                addToCart(p);
+                                toast({
+                                  title: "Added to Cart",
+                                  description: `"${p.name}" has been added to your cart.`,
+                                });
+                              }}
+                              disabled={p.stock === 0}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 h-6"
+                            >
+                              Add
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className={cn(
                     "text-xs mt-1",
                     msg.sender === 'user' ? 'text-primary-foreground/70 text-right' : 'text-secondary-foreground/70 text-left'

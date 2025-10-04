@@ -142,4 +142,16 @@ export interface AgriBotChatInput {
 
 export interface AgriBotChatOutput {
   response: string;
+  suggestedProducts?: Product[];
+}
+
+export interface ProductSuggestionChatInput {
+  message: string;
+  history: ChatMessageHistory[];
+  language?: 'en' | 'mr' | 'hi';
+}
+
+export interface ProductSuggestionChatOutput {
+  response: string;
+  suggestedProducts?: Product[];
 }

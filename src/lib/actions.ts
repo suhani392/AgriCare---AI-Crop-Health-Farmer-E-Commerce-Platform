@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { generatePreventativeMeasures, type GeneratePreventativeMeasuresInput, type GeneratePreventativeMeasuresOutput } from '@/ai/flows/generate-preventative-measures';
 import { getLocalizedFarmingTips, type GetLocalizedFarmingTipsInput, type GetLocalizedFarmingTipsOutput } from '@/ai/flows/get-localized-farming-tips';
 import { agriBotChat } from '@/ai/flows/agri-bot-chat';
+import { productSuggestionChat, type ProductSuggestionChatInput, type ProductSuggestionChatOutput } from '@/ai/flows/product-suggestion-chat';
 import { generateWeatherImage, type GenerateWeatherImageInput, type GenerateWeatherImageOutput } from '@/ai/flows/generate-weather-image';
 import type { LocalizedFarmingTip, DiagnosisResult, ChatMessage, DiagnosisHistoryEntry, UserProfile, UserRole, ProductCategory, AdminDashboardStats, CartItem, ShippingAddress, AgriBotChatInput, AgriBotChatOutput, Product, Order, WeatherData } from '@/types';
 import { 
@@ -138,6 +139,18 @@ export async function getAgriBotResponseAction(
     return result;
   } catch (error: any) {
     console.error('Error in getAgriBotResponseAction:', error);
+    return { error: `Failed to get response from AgriBot. ${error.message || ''}`.trim() };
+  }
+}
+
+export async function getProductSuggestionChatAction(
+  input: ProductSuggestionChatInput
+): Promise<ProductSuggestionChatOutput | { error: string }> {
+  try {
+    const result = await productSuggestionChat(input);
+    return result;
+  } catch (error: any) {
+    console.error('Error in getProductSuggestionChatAction:', error);
     return { error: `Failed to get response from AgriBot. ${error.message || ''}`.trim() };
   }
 }

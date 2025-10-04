@@ -1,0 +1,9 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#ffebee"/>
+  <text x="200" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#d32f2f">
+    Tomato Seeds
+  </text>
+  <text x="200" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#f44336">
+    Hybrid F1
+  </text>
+</svg>

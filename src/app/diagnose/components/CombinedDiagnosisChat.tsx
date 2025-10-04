@@ -18,6 +18,7 @@ import { getAgriBotResponseAction, diagnoseCropAction } from '@/lib/actions';
 import { useCart } from '@/contexts/CartContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { getProductImage } from '@/lib/productImages';
+import { getProductSuggestions } from '@/lib/product-suggestions';
 
 type Sender = 'user' | 'bot';
 
@@ -129,8 +130,8 @@ export default function CombinedDiagnosisChat() {
           botText = 'Unexpected response from diagnosis service.';
         }
 
-        // Build product suggestions strictly from last diagnosis and recommendation text
-        const suggestions: Product[] = buildProductSuggestions(lastDiagnosis, botText);
+        // Build product suggestions using the new intelligent system
+        const suggestions: Product[] = await getProductSuggestions(d, botText);
 
         setMessages((prev) => [
           ...prev,
@@ -167,48 +168,6 @@ export default function CombinedDiagnosisChat() {
     }
   };
 
-  const buildProductSuggestions = (diag: DiagnosisResult | null, diagnosisText: string): Product[] => {
-    const items: Product[] = [];
-    const base = `${diag ? diag.disease + ' ' : ''}${diagnosisText}`.toLowerCase();
-
-    const pushItem = (id: string, name: string, category: string, price: number, description?: string) => {
-      items.push({
-        id,
-        name,
-        category,
-        price,
-        stock: 100,
-        imageUrl: getProductImage(name),
-        description,
-      });
-    };
-
-    // Fungal diseases
-    if (/(fung|blight|mildew|rust)/i.test(base)) {
-      pushItem('fungicide-neem-1', 'Neem Oil (Fungicidal)', 'Pesticides', 299, 'Organic neem oil for fungal control');
-    }
-    // Insect/pest pressure (use neem as biopesticide)
-    if (/(insect|aphid|borer|caterpillar|thrip|whitefly|pest)/i.test(base)) {
-      pushItem('pesticide-neem-2', 'Neem Oil (Pesticidal)', 'Pesticides', 299, 'Broad-spectrum botanical pesticide');
-    }
-    // Weed control (glyphosate for weeds only)
-    if (/(weed|weeds|grassy|grass)/i.test(base)) {
-      pushItem('herbicide-glyph-1', 'Glyphosate Herbicide', 'Herbicides', 499, 'Non-selective herbicide for weed control');
-    }
-    // Nutrient deficiencies
-    if (/(nitrogen|chlorosis|yellowing|urea)/i.test(base)) {
-      pushItem('fert-urea-1', 'Urea Fertilizer', 'Fertilizers', 399, 'High nitrogen fertilizer for quick greening');
-    }
-    if (/(phosphorus|root vigor|dap)/i.test(base)) {
-      pushItem('fert-dap-1', 'DAP Fertilizer', 'Fertilizers', 499, 'Balanced phosphorus and nitrogen for strong roots');
-    }
-    // Application tool only when spraying is explicitly mentioned
-    if (/(spray|foliar|sprayer|sprayed)/i.test(base)) {
-      pushItem('tool-sprayer-1', 'Manual Spray Pump', 'Tools', 1099, 'Handheld sprayer for field application');
-    }
-
-    return items;
-  };
 
   return (
     <div className="flex flex-col h-full w-full bg-card border rounded-xl shadow-xl overflow-hidden">
@@ -262,21 +221,53 @@ export default function CombinedDiagnosisChat() {
                 )}
                 {msg.kind === 'suggestions' && msg.suggestions && msg.suggestions.length > 0 && (
                   <div className="space-y-3">
-                    <p className="font-semibold">Suggested products</p>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <p className="font-semibold text-green-700">Recommended Products</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Based on your diagnosis, these products may help:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {msg.suggestions.map((p) => (
-                        <Card key={p.id} className="overflow-hidden">
+                        <Card key={p.id} className="overflow-hidden hover:shadow-md transition-shadow">
                           <CardContent className="p-3 flex gap-3 items-center">
-                            <img src={p.imageUrl} alt={p.name} className="h-14 w-14 object-cover rounded" />
+                            <img 
+                              src={p.imageUrl} 
+                              alt={p.name} 
+                              className="h-14 w-14 object-cover rounded border"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/images/products/placeholder-product.svg';
+                              }}
+                            />
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{p.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">₹{p.price}</p>
+                              <p className="font-medium text-sm truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{p.category}</p>
+                              <p className="text-sm font-semibold text-primary">₹{p.price.toFixed(2)}</p>
+                              {p.stock > 0 && (
+                                <p className="text-xs text-green-600">In Stock ({p.stock})</p>
+                              )}
                             </div>
-                            <Button size="sm" onClick={() => addToCart(p)}>Add</Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                addToCart(p);
+                                toast({
+                                  title: "Added to Cart",
+                                  description: `"${p.name}" has been added to your cart.`,
+                                });
+                              }}
+                              disabled={p.stock === 0}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              {p.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                            </Button>
                           </CardContent>
                         </Card>
                       ))}
                     </div>
+                    <p className="text-xs text-muted-foreground italic">
+                      💡 These suggestions are based on your specific diagnosis and may vary for different conditions.
+                    </p>
                   </div>
                 )}
                 <p className={cn('text-xs mt-1', msg.sender === 'user' ? 'text-primary-foreground/70 text-right' : 'text-secondary-foreground/70 text-left')}>
