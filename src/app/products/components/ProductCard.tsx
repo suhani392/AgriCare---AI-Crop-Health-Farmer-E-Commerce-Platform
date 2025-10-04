@@ -2,40 +2,23 @@
 'use client';
 
 import Image from 'next/image';
+import { getProductImage, FALLBACK_IMAGE } from '@/lib/productImages';
+import { useState } from 'react';
 import type { Product } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tag, Package, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { getProductImage, productImageMap } from '@/lib/productImages';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const [imgSrc, setImgSrc] = useState<string>(product.imageUrl || getProductImage(product.name));
   const { addToCart } = useCart();
   const { toast } = useToast();
-  
-  // Get the image URL and log debug info
-  const imageUrl = getProductImage(product.name);
-  
-  // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    const matchFound = Object.keys(productImageMap).some(key => 
-      product.name.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    console.log('Product Debug:', {
-      productName: product.name,
-      matchedImage: imageUrl,
-      originalImage: product.imageUrl,
-      exactMatch: productImageMap[product.name] !== undefined,
-      partialMatch: matchFound,
-      allProductNames: Object.keys(productImageMap)
-    });
-  }
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -50,12 +33,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       <CardHeader className="p-0">
         <div className="aspect-square relative w-full overflow-hidden">
           <Image 
-            src={getProductImage(product.name)}
-            alt={product.name} 
-            layout="fill" 
-            objectFit="cover" 
+            src={imgSrc}
+            alt={product.name}
+            layout="fill"
+            objectFit="cover"
             className="transition-transform duration-500 hover:scale-105"
             data-ai-hint={product.dataAiHint || "farm product"}
+            onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
         </div>
       </CardHeader>

@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -53,7 +52,6 @@ export interface WeatherData {
   wind: string;
   iconName: string; // Lucide icon name
   locationName: string;
-  dataAiHint?: string;
 }
 
 export interface LocalizedFarmingTip {
@@ -92,9 +90,11 @@ export interface ChatMessage {
   timestamp: string | null;
 }
 
+export type ChatMessagePart = { text: string } | { media: { url: string } };
+
 export interface ChatMessageHistory {
   role: 'user' | 'model';
-  parts: { text: string }[];
+  parts: ChatMessagePart[];
 }
 
 
@@ -137,6 +137,7 @@ export interface AgriBotChatInput {
   message: string;
   history: ChatMessageHistory[];
   language?: 'en' | 'mr' | 'hi';
+  photoDataUri?: string;
 }
 
 export interface AgriBotChatOutput {

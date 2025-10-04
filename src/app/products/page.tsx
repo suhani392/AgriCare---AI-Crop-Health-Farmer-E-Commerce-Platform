@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import ProductGrid from './components/ProductGrid';
 
 export const metadata: Metadata = {
-  title: 'Farming Products - AgriBazaar India',
+  title: 'Farming Products - AgriCare India',
   description: 'Browse and buy essential farming equipment, fertilizers, pesticides, seeds, and other agricultural products for Indian farmers.',
 };
 

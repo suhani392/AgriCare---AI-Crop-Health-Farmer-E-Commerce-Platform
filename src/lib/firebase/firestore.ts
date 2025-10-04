@@ -1,4 +1,3 @@
-
 import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, updateDoc, getDoc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "./index";
 import type { DiagnosisHistoryEntry, ChatMessage, UserProfile, UserRole, ProductCategory, Order, OrderBase, DiagnosisResult, Product } from '@/types';
@@ -28,11 +27,11 @@ const DIAGNOSIS_HISTORY_COLLECTION = 'diagnosis_history';
 // A generic function to save any diagnosis entry
 export const saveDiagnosisEntryToDb = async (entryData: Omit<DiagnosisHistoryEntry, 'id' | 'timestamp'>): Promise<string> => {
     try {
-        const dataWithTimestamp = {
+        const dataToSave = {
             ...entryData,
             timestamp: serverTimestamp()
         };
-        const docRef = await addDoc(collection(db, DIAGNOSIS_HISTORY_COLLECTION), dataWithTimestamp);
+        const docRef = await addDoc(collection(db, DIAGNOSIS_HISTORY_COLLECTION), dataToSave);
         return docRef.id;
     } catch (error) {
         console.error("Error saving diagnosis entry: ", error);
@@ -64,29 +63,44 @@ export const getDiagnosisHistoryEntry = async (id: string): Promise<DiagnosisHis
     return null;
 };
 
+export const getUserDiagnosisHistory = async (userId: string): Promise<DiagnosisHistoryEntry[]> => {
+    try {
+        const q = query(
+            collection(db, DIAGNOSIS_HISTORY_COLLECTION),
+            where("userId", "==", userId)
+        );
+        const querySnapshot = await getDocs(q);
+        const history: DiagnosisHistoryEntry[] = [];
+        querySnapshot.forEach((doc) => {
+            history.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as DiagnosisHistoryEntry);
+        });
+        // Sort in-memory after fetching
+        return history.sort((a, b) => {
+            if (!a.timestamp || !b.timestamp) return 0;
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+    } catch (error: any) {
+        console.error("Error fetching user diagnosis history from DB: ", error);
+        throw new Error(`Failed to fetch diagnosis history. ${error.message || ''}`.trim());
+    }
+};
+
 export const getPendingExpertQueries = async (): Promise<DiagnosisHistoryEntry[]> => {
   try {
     const q = query(
       collection(db, DIAGNOSIS_HISTORY_COLLECTION),
-      where("status", "==", "pending_expert"),
-      orderBy("timestamp", "desc")  // Newest first
+      where("status", "==", "pending_expert")
     );
-    
-    console.log('Fetching pending expert queries...');
     const querySnapshot = await getDocs(q);
-    console.log(`Found ${querySnapshot.size} pending expert queries`);
-    
     const queries: DiagnosisHistoryEntry[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      console.log(`Query ${doc.id}:`, data);
-      queries.push({ 
-        id: doc.id, 
-        ...serializeDocumentTimestamps(data) 
-      } as DiagnosisHistoryEntry);
+      queries.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as DiagnosisHistoryEntry);
     });
-    
-    return queries;
+    // Sort manually in code
+    return queries.sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
   } catch (error: any) {
     console.error("Error fetching pending expert queries from DB: ", error);
     let errorMessage = "Failed to fetch pending expert queries.";
@@ -98,13 +112,16 @@ export const getPendingExpertQueries = async (): Promise<DiagnosisHistoryEntry[]
 
 export const getAllDiagnosisEntries = async (): Promise<DiagnosisHistoryEntry[]> => {
   try {
-    const q = query(collection(db, DIAGNOSIS_HISTORY_COLLECTION), orderBy("timestamp", "desc"));
+    const q = query(collection(db, DIAGNOSIS_HISTORY_COLLECTION));
     const querySnapshot = await getDocs(q);
     const entries: DiagnosisHistoryEntry[] = [];
     querySnapshot.forEach((doc) => {
       entries.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as DiagnosisHistoryEntry);
     });
-    return entries;
+    return entries.sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
   } catch (error: any) {
     console.error("Error fetching all diagnosis entries from DB: ", error);
     throw new Error(`Failed to fetch all diagnosis entries. ${error.message || ''}`.trim());
@@ -153,13 +170,16 @@ const USERS_COLLECTION = 'users';
 
 export const getAllUsers = async (): Promise<UserProfile[]> => {
   try {
-    const usersQuery = query(collection(db, USERS_COLLECTION), orderBy("createdAt", "desc"));
+    const usersQuery = query(collection(db, USERS_COLLECTION));
     const querySnapshot = await getDocs(usersQuery);
     const users: UserProfile[] = [];
     querySnapshot.forEach((doc) => {
       users.push({ uid: doc.id, ...serializeDocumentTimestamps(doc.data()) } as UserProfile);
     });
-    return users;
+     return users.sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   } catch (error: any) {
     console.error("Error fetching all users from DB: ", error);
     let errorMessage = "Failed to fetch users.";
@@ -311,7 +331,11 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
         querySnapshot.forEach((doc) => {
             orders.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as Order);
         });
-        return orders;
+        // Sort in-memory after fetching
+        return orders.sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     } catch (error) {
         throw new Error(`Failed to fetch user orders. ${(error as Error).message}`);
     }
@@ -321,15 +345,17 @@ export const getPendingOrders = async (): Promise<Order[]> => {
     try {
         const q = query(
             collection(db, ORDERS_COLLECTION),
-            where("status", "==", "placed"),
-            orderBy("createdAt", "asc")
+            where("status", "==", "placed")
         );
         const querySnapshot = await getDocs(q);
         const orders: Order[] = [];
         querySnapshot.forEach((doc) => {
             orders.push({ id: doc.id, ...serializeDocumentTimestamps(doc.data()) } as Order);
         });
-        return orders;
+        return orders.sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0;
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        });
     } catch (error) {
         throw new Error(`Failed to fetch pending orders. ${(error as Error).message}`);
     }

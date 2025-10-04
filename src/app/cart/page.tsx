@@ -4,7 +4,7 @@ import CartClient from './components/CartClient';
 import { ShoppingCart } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Your Shopping Cart - AgriBazaar',
+  title: 'Your Shopping Cart - AgriCare',
   description: 'Review items in your shopping cart, adjust quantities, and proceed to checkout.',
 };
 

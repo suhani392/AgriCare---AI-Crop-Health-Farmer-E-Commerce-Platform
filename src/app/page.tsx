@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -13,11 +12,11 @@ export default function HomePage() {
   
   const featureCards = [
     {
-      title: t('features.aiDiagnosis.title'),
-      description: t('features.aiDiagnosis.description'),
-      href: '/diagnose',
-      icon: <ScanLine className="h-10 w-10 text-primary mb-4" />,
-      cta: t('features.aiDiagnosis.cta'),
+      title: t('features.chatbot.title'),
+      description: t('features.chatbot.description'),
+      href: '/chatbot',
+      icon: <MessageCircle className="h-10 w-10 text-primary mb-4" />,
+      cta: t('features.chatbot.cta'),
     },
     {
       title: t('features.ecommerce.title'),
@@ -27,18 +26,18 @@ export default function HomePage() {
       cta: t('features.ecommerce.cta'),
     },
     {
-      title: t('features.chatbot.title'),
-      description: t('features.chatbot.description'),
-      href: '/chatbot',
-      icon: <MessageCircle className="h-10 w-10 text-primary mb-4" />,
-      cta: t('features.chatbot.cta'),
-    },
-    {
       title: t('features.localInfo.title'),
       description: t('features.localInfo.description'),
       href: '/local-info',
       icon: <CloudSun className="h-10 w-10 text-primary mb-4" />,
       cta: t('features.localInfo.cta'),
+    },
+    {
+      title: t('features.askExpert.title'),
+      description: t('features.askExpert.description'),
+      href: '/ask-expert',
+      icon: <ScanLine className="h-10 w-10 text-primary mb-4" />,
+      cta: t('features.askExpert.cta'),
     },
   ];
 
@@ -56,8 +55,8 @@ export default function HomePage() {
               {t('home.subtitle')}
             </p>
             <div className="space-x-4">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/85 text-primary-foreground active:brightness-75">
-                <Link href="/diagnose">{t('home.getStarted')}</Link>
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Link href="/chatbot">{t('home.getStarted')}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
                 <Link href="/products">{t('home.browseProducts')}</Link>

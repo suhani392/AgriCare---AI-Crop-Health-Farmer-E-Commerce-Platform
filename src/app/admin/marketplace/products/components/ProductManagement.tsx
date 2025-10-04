@@ -36,6 +36,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { LeafLoader } from '@/components/ui/leaf-loader';
+import { uploadImageForDiagnosis } from '@/lib/firebase/storage';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const productFormSchema = z.object({
   name: z.string().min(3, 'Product name must be at least 3 characters.'),
@@ -43,7 +45,7 @@ const productFormSchema = z.object({
   price: z.coerce.number().min(0, 'Price must be a positive number.'),
   stock: z.coerce.number().int().min(0, 'Stock must be a positive integer.'),
   description: z.string().optional(),
-  imageUrl: z.string().url('Please enter a valid image URL.'),
+  image: z.union([z.custom<FileList>((val) => val instanceof FileList, "Please upload an image."), z.string().url()]).optional(),
   dataAiHint: z.string().optional(),
 });
 
@@ -61,6 +63,7 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -71,7 +74,6 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
       price: 0,
       stock: 0,
       description: '',
-      imageUrl: '',
       dataAiHint: '',
     },
   });
@@ -104,14 +106,33 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
   useEffect(() => {
     fetchProductsAndCategories();
   }, [adminUserId]);
+  
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('image', event.target.files!);
+    } else {
+      setPreviewImage(null);
+    }
+  };
 
   const handleOpenDialog = (product: Product | null = null) => {
     setEditingProduct(product);
+    setPreviewImage(null);
     if (product) {
-      form.reset(product);
+      form.reset({
+        ...product,
+        image: product.imageUrl,
+      });
+      setPreviewImage(product.imageUrl);
     } else {
       form.reset({
-        name: '', category: '', price: 0, stock: 0, description: '', imageUrl: '', dataAiHint: '',
+        name: '', category: '', price: 0, stock: 0, description: '', image: undefined, dataAiHint: '',
       });
     }
     setIsDialogOpen(true);
@@ -129,8 +150,45 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
 
   const onSubmit: SubmitHandler<ProductFormValues> = async (data) => {
     setIsSubmitting(true);
-    const action = editingProduct ? updateProductAction : addProductAction;
-    const result = await action(adminUserId, { ...data, id: editingProduct?.id || '' });
+    let finalImageUrl = editingProduct?.imageUrl || '';
+
+    // Handle image upload
+    if (data.image && typeof data.image !== 'string' && data.image.length > 0) {
+      try {
+        const file = data.image[0];
+        // Re-using the diagnosis image upload function. Can be made more generic later.
+        finalImageUrl = await uploadImageForDiagnosis(file, adminUserId); 
+      } catch (uploadError) {
+        toast({ variant: 'destructive', title: 'Image Upload Failed', description: 'Could not upload the product image.' });
+        setIsSubmitting(false);
+        return;
+      }
+    } else if (typeof data.image === 'string') {
+        finalImageUrl = data.image;
+    }
+
+    if (!finalImageUrl) {
+        toast({ variant: 'destructive', title: 'Image Required', description: 'Please upload an image for the new product.' });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const productData = {
+      name: data.name,
+      category: data.category,
+      price: data.price,
+      stock: data.stock,
+      description: data.description || '',
+      imageUrl: finalImageUrl,
+      dataAiHint: data.dataAiHint || '',
+    };
+    
+    let result;
+    if (editingProduct) {
+        result = await updateProductAction(adminUserId, { ...productData, id: editingProduct.id });
+    } else {
+        result = await addProductAction(adminUserId, productData);
+    }
 
     if (result.product) {
       toast({ title: 'Success', description: `Product ${editingProduct ? 'updated' : 'added'}.` });
@@ -166,41 +224,63 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="price" render={({ field }) => (
-                        <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="stock" render={({ field }) => (
-                        <FormItem><FormLabel>Stock</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-                <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
-                      <SelectContent>{categories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}</SelectContent>
-                  </Select><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                  <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea rows={4} {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="dataAiHint" render={({ field }) => (
-                  <FormItem><FormLabel>Image AI Hint (Optional)</FormLabel><FormControl><Input placeholder="e.g. tractor farming" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <LeafLoader size={16} className="mr-2" />}
-                        {editingProduct ? 'Save Changes' : 'Add Product'}
-                    </Button>
-                </DialogFooter>
-              </form>
+              <ScrollArea className="max-h-[80vh] pr-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="price" render={({ field }) => (
+                          <FormItem><FormLabel>Price (₹)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name="stock" render={({ field }) => (
+                          <FormItem><FormLabel>Stock</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                  </div>
+                  <FormField control={form.control} name="category" render={({ field }) => (
+                    <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                        <SelectContent>{categories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}</SelectContent>
+                    </Select><FormMessage /></FormItem>
+                  )} />
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Product Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="file:text-sm file:font-medium file:bg-primary/10 file:text-primary file:border-0 file:rounded-md file:px-3 file:py-1.5 hover:file:bg-primary/20"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {previewImage && (
+                    <div className="mt-2 border rounded-lg overflow-hidden aspect-video relative w-full max-w-xs mx-auto">
+                      <Image src={previewImage} alt="Product image preview" layout="fill" objectFit="contain" />
+                    </div>
+                  )}
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea rows={4} {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="dataAiHint" render={({ field }) => (
+                    <FormItem><FormLabel>Image AI Hint (Optional)</FormLabel><FormControl><Input placeholder="e.g. tractor farming" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <DialogFooter className="sticky bottom-0 bg-background py-4 -mx-6 px-6 border-t">
+                      <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                      <Button type="submit" disabled={isSubmitting}>
+                          {isSubmitting && <LeafLoader size={16} className="mr-2" />}
+                          {editingProduct ? 'Save Changes' : 'Add Product'}
+                      </Button>
+                  </DialogFooter>
+                </form>
+              </ScrollArea>
             </Form>
           </DialogContent>
         </Dialog>
@@ -258,3 +338,5 @@ export default function ProductManagement({ adminUserId }: ProductManagementProp
     </div>
   );
 }
+
+    

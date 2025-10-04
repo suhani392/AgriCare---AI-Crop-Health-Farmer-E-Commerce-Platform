@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // This is to allow the Next.js dev server to accept requests from the
+    // secure preview environment.
+    allowedDevOrigins: [
+      'https://*.cluster-zumahodzirciuujpqvsniawo3o.cloudworkstations.dev',
+    ],
+  },
 };
 
 export default nextConfig;

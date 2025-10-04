@@ -61,7 +61,7 @@ export default function ExpertPage() {
           <CardTitle>Welcome, Expert!</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>This is your AgriBazaar expert dashboard. Farmers may request your expertise on diagnoses they are not satisfied with.</p>
+          <p>This is your AgriCare expert dashboard. Farmers may request your expertise on diagnoses they are not satisfied with.</p>
           <p className="mt-4 text-sm">
             You can review and respond to these queries to help fellow farmers.
           </p>

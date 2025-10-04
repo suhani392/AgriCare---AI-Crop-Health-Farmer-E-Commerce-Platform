@@ -1,42 +1,52 @@
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, User, Bot, AlertTriangle } from 'lucide-react';
+import { Send, User, Bot, AlertTriangle, ImagePlus, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { saveChatMessageAction, getAgriBotResponseAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { ChatMessageHistory } from '@/types';
+import type { ChatMessageHistory, ChatMessagePart } from '@/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const fileToDataUri = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 interface Message {
   id: string;
-  text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  parts: ChatMessagePart[];
 }
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { t, language } = useLanguage();
 
   useEffect(() => {
-    // Generate a session ID when the component mounts or when the user logs in/out
     if (currentUser) {
       setSessionId(`${currentUser.uid}-${Date.now()}`);
     } else {
@@ -44,49 +54,65 @@ export default function ChatInterface() {
     }
   }, [currentUser]);
 
-
   useEffect(() => {
-    // Auto-scroll to bottom
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
       if (viewport) {
         viewport.scrollTop = viewport.scrollHeight;
       }
     }
-  }, [messages]);
-  
+  }, [messages, isLoading]);
+
   useEffect(() => {
-    // Initial bot message
     setMessages([
-      { 
-        id: Date.now().toString(), 
-        text: t('chatbot.initialMessage'), 
+      {
+        id: Date.now().toString(),
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
+        parts: [{ text: t('chatbot.initialMessage') }]
       }
     ]);
   }, [t]);
 
-  const handleSaveMessage = async (message: Omit<Message, 'id' | 'timestamp'>) => {
-    if (!currentUser || !sessionId) {
-      return;
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveMessage = async (message: Omit<Message, 'id' | 'timestamp'>) => {
+    if (!currentUser || !sessionId) return;
     try {
-      await saveChatMessageAction({
-        userId: currentUser.uid,
-        sessionId: sessionId,
-        text: message.text,
-        sender: message.sender,
-      });
+        // Simplified for now - assuming text part exists
+        const textContent = message.parts.find(p => 'text' in p)?.text || '';
+        await saveChatMessageAction({
+            userId: currentUser.uid,
+            sessionId: sessionId,
+            text: textContent, // Note: Storing only text part for history simplicity
+            sender: message.sender,
+        });
     } catch (error) {
-      console.error("Failed to save chat message:", error);
+        console.error("Failed to save chat message:", error);
     }
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() && !imageFile) return;
 
     if (!currentUser) {
       toast({
@@ -97,36 +123,48 @@ export default function ChatInterface() {
       return;
     }
 
-    const userMessageData = {
-      text: inputValue,
-      sender: 'user' as const,
-    };
+    const userParts: ChatMessagePart[] = [];
+    if (inputValue.trim()) {
+        userParts.push({ text: inputValue });
+    }
+    if (imagePreview) {
+        userParts.push({ media: { url: imagePreview } });
+    }
+
     const userMessage: Message = {
-      ...userMessageData,
       id: Date.now().toString(),
-      timestamp: new Date()
+      sender: 'user',
+      timestamp: new Date(),
+      parts: userParts,
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    removeImage();
     setIsLoading(true);
-    
-    await handleSaveMessage(userMessageData);
 
-    const chatHistory: ChatMessageHistory[] = newMessages
+    // Don't save image data to history for performance
+    await handleSaveMessage({ sender: 'user', parts: [{ text: inputValue }] });
+
+    const chatHistory: ChatMessageHistory[] = messages
       .filter(m => m.sender === 'user' || m.sender === 'bot')
       .map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }],
+        parts: m.parts.filter(p => 'text' in p), // Send only text history to the model
       }));
+    
+    let photoDataUri: string | undefined = undefined;
+    if (imageFile) {
+        photoDataUri = await fileToDataUri(imageFile);
+    }
 
     const result = await getAgriBotResponseAction({
-        message: userMessage.text,
-        history: chatHistory.slice(0, -1), // Send history excluding the latest user message
+        message: inputValue,
+        photoDataUri,
+        history: chatHistory,
         language: language,
     });
-
+    
     let botResponseText = "I'm sorry, I encountered an error. Please try again later.";
     if ('response' in result) {
       botResponseText = result.response;
@@ -135,18 +173,16 @@ export default function ChatInterface() {
       console.error("AgriBot response error:", result.error);
     }
 
-    const botResponseData = {
-        text: botResponseText,
-        sender: 'bot' as const,
-    };
-    const botResponse: Message = {
-      ...botResponseData,
+    const botMessage: Message = {
       id: (Date.now() + 1).toString(),
-      timestamp: new Date()
+      sender: 'bot',
+      timestamp: new Date(),
+      parts: [{ text: botResponseText }],
     };
-    setMessages(prev => [...prev, botResponse]);
+    
+    setMessages(prev => [...prev, botMessage]);
     setIsLoading(false);
-    await handleSaveMessage(botResponseData);
+    await handleSaveMessage({ sender: 'bot', parts: [{ text: botResponseText }] });
   };
 
   return (
@@ -192,16 +228,23 @@ export default function ChatInterface() {
                     : 'bg-secondary text-secondary-foreground rounded-bl-none'
                 )}
               >
-                {msg.sender === 'bot' ? (
-                  <ReactMarkdown 
-                    className="chat-prose"
-                    remarkPlugins={[remarkGfm]}
-                  >
-                    {msg.text}
-                  </ReactMarkdown>
-                ) : (
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
-                )}
+                {msg.parts.map((part, index) => {
+                  if ('text' in part && part.text) {
+                    return (
+                        <ReactMarkdown key={index} className="chat-prose" remarkPlugins={[remarkGfm]}>
+                            {part.text}
+                        </ReactMarkdown>
+                    );
+                  }
+                  if ('media' in part) {
+                    return (
+                        <div key={index} className="mt-2 rounded-md overflow-hidden relative aspect-video w-full max-w-xs">
+                             <Image src={part.media.url} alt="User upload" layout="fill" objectFit="contain" />
+                        </div>
+                    );
+                  }
+                  return null;
+                })}
                 <p className={cn(
                     "text-xs mt-1",
                     msg.sender === 'user' ? 'text-primary-foreground/70 text-right' : 'text-secondary-foreground/70 text-left'
@@ -227,19 +270,53 @@ export default function ChatInterface() {
           )}
         </div>
       </ScrollArea>
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t p-4 bg-background">
-        <Input
-          type="text"
-          placeholder={currentUser ? t('chatbot.inputPlaceholder') : t('chatbot.inputPlaceholderLoggedOut')}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          className="flex-grow"
-          disabled={isLoading || !currentUser}
-        />
-        <Button type="submit" size="icon" disabled={isLoading || !inputValue.trim() || !currentUser} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Send className="h-5 w-5" />
-          <span className="sr-only">{t('chatbot.send')}</span>
-        </Button>
+      <form onSubmit={handleSubmit} className="border-t p-4 bg-background">
+        {imagePreview && (
+          <div className="relative w-24 h-24 mb-2 rounded-md border overflow-hidden">
+            <Image src={imagePreview} alt="Image preview" layout="fill" objectFit="cover" />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute top-1 right-1 h-6 w-6"
+              onClick={removeImage}
+            >
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || !currentUser}
+                className="text-muted-foreground hover:text-primary"
+            >
+                <ImagePlus className="h-5 w-5" />
+                <span className="sr-only">Add image</span>
+            </Button>
+            <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="hidden"
+            />
+            <Input
+              type="text"
+              placeholder={currentUser ? t('chatbot.inputPlaceholder') : t('chatbot.inputPlaceholderLoggedOut')}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="flex-grow"
+              disabled={isLoading || !currentUser}
+            />
+            <Button type="submit" size="icon" disabled={isLoading || (!inputValue.trim() && !imageFile) || !currentUser} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Send className="h-5 w-5" />
+              <span className="sr-only">{t('chatbot.send')}</span>
+            </Button>
+        </div>
       </form>
     </div>
   );
